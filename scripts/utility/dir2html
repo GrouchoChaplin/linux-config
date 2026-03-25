@@ -1,0 +1,805 @@
+#!/usr/bin/perl -w
+# -*- perl -*-
+
+#########################################################################
+#
+# DIR2HTML
+# generates an (optionally commented) HTML indexfile for a directory (and
+# optionally for all its subdirectories).
+#
+# Written & copyright (c) 2004 by Peer Schaefer
+#
+# This is a script for perl, v5.6.1, Copyright 1987-2001, Larry Wall
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the
+#   Free Software Foundation, Inc.
+#   59 Temple Place, Suite 330, Boston, MA 02111-1307
+#   USA
+# It's also available from the web at <http://www.gnu.org>.
+#
+#########################################################################
+
+use warnings;
+use strict;
+use POSIX qw(strftime);
+
+my $FILENAME = __FILE__;
+my $PROGNAME = "dir2html";
+my $VERSION  = "0.9 beta";
+my $YEAR     = 2004;
+my $TITLE    = "$PROGNAME v$VERSION -- generating HTML indexfiles for directories"; 
+my $WEBSITE  = 'Newest version available at: http://www.wolldingwacht.de/progs/dir2html.html';
+my $AUTHOR   = "Peer Schaefer (peer\@wolldingwacht.de)";
+my $LICENSE  =
+"$TITLE\n\
+Copyright (C) $YEAR $AUTHOR\n\
+This program is free software; you can redistribute it and/or modify\
+it under the terms of the GNU General Public License as published by\
+the Free Software Foundation; either version 2 of the License, or\
+(at your option) any later version.\n\
+This program is distributed in the hope that it will be useful,\
+but WITHOUT ANY WARRANTY; without even the implied warranty of\
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\
+GNU General Public License for more details.\n\
+You should have received a copy of the GNU General Public License\
+along with this program; if not, write to the\
+  Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,\
+  MA 02111-1307 USA\n";
+*MSGOUT = *STDERR;
+
+#########################################################################
+# readini
+#########################################################################
+#
+# readini() searches in the specified textfile for the specified
+# section and reads all entries. A section is declared with brackets
+# [name] and ends when another section begins. Each entry in a
+# section must have the format `key=value'.
+# If you provide a list of all valid keys, readini() checks each
+# key for it's validity and prompts an error if it's invalid. The
+# check is case insesitive.
+
+sub readini {
+    my $ini_filename       = $_[0];
+    my $ini_section        = $_[1];
+    my $ini_keys_available = $_[2];
+    my %ini_entry;
+    my $actual_section = "\n";
+
+    if ( not defined $ini_filename ) { return undef; }
+    if ( not defined $ini_section )  { $ini_section = 'defaults'; }
+
+    open( INIFILE, "<$ini_filename" )
+        or die "$FILENAME: Can't open $ini_filename: $!\n";
+    while (<INIFILE>) {
+        s/^\s+|\s+$//g; # remove preceding oder succeeding whitespace
+        if ( ( $_ eq '' ) || ( index( $_, '#' ) == 0 ) ) { next; }
+        if ( ( $_ eq '' ) || ( index( $_, ';' ) == 0 ) ) { next; }
+        if (m/^\[(.+?)\]$/) { # section declaration [SECTION]
+            $actual_section = $1;
+            next;
+        }
+        if ( ( lc $actual_section ) eq ( lc $ini_section ) ) {
+            my ( $key, $val ) = split /=/, $_, 2; # format "key=val"
+            if (   ( not defined $key )
+                || ( $key eq '' )
+                || ( not defined $val )
+                || ( $val eq '' ) )
+            {
+                die
+"$FILENAME: Syntax error in line $. of file $ini_filename: $_\n";
+            }
+            $key =~ s/^\s+|\s+$//g; # remove preceding oder succeeding whspace
+            $val =~ s/^\s+|\s+$//g; # remove preceding oder succeeding whspace
+            if ( $val =~
+                m/^\"(.*?)\"$/ )  # starts and ends with a doublequote = a string
+            {
+                $val = $1;
+                $val =~ s/\\\"/\n/g; # replace escaped \" with newline \n
+                if ( index( $val, '"' ) >= 0 ) {
+                    die
+"$FILENAME: Syntax error in line $. of file $ini_filename: use \\\" (backslash doublequote) inside a string to represent a doublequote (\")\n";
+                }
+                $val =~ s/\n/\"/g; # replace newline \n with quote "
+            }
+	    if ( defined $ini_keys_available )
+	    {
+		if ( not grep { ( lc $_ ) eq ( lc $key ) } @$ini_keys_available )
+		{
+		    die "$FILENAME: Error in line $. of file $ini_filename: unknown key \"$key\"\n";
+	        }
+	    }
+            if ( exists $ini_entry{lc $key} ) {
+                die "$FILENAME: Error in line $. of file $ini_filename: key \"$key\" used more than once\n";
+            }
+            $ini_entry{lc $key} = $val;
+        }
+    }
+    close INIFILE;
+
+    if ( defined $ini_keys_available )   # Fill missing keys with empty strings ""
+    {
+        foreach ( @$ini_keys_available )
+        {
+            if ( not exists $ini_entry{lc $_} ) { $ini_entry{lc $_} = ""; }
+        }
+    }
+
+    return %ini_entry;
+}
+
+
+
+#########################################################################
+# readopts
+#########################################################################
+#
+sub readopts {
+    my $opts_available = $_[0]; # list with available options
+    my $opts_aliases   = $_[1]; # hash with aliases for options ("long options" starting with "--")
+    my $max_filenames  = $_[2]; # max number of filenames to accept
+    my %opts_found;             # hash with the found options and their params
+    my @filenames_found;        # list with the found filenames
+
+    while ( @ARGV > 0 ) {
+        my $opt  = shift @ARGV;
+        my $orig = $opt;
+        $opt = $$opts_aliases{$opt} if ( exists $$opts_aliases{$opt} );
+        if ( exists $$opts_available{$opt} ) {
+            die "$FILENAME: Option used twice: $orig\n" if ( exists $opts_found{$opt} );
+            $opts_found{$opt} = '';
+            if ( $$opts_available{$opt} == 1 ) {
+                if ( not defined( $opts_found{$opt} = shift @ARGV ) ) {
+                    die "$FILENAME: Missing value after option $orig\n";
+                }
+            }
+            else {
+                if ( $$opts_available{$opt} != 0 ) {
+                    die
+"$FILENAME: internal error: option $opt: can't grab more than one value!\n";
+                }
+            }
+        }
+        else {
+            if ( $opt eq '--' ) {
+                while ( @ARGV > 0 ) {
+                    push @filenames_found, shift @ARGV;
+                }
+            }
+            else {
+                if ( ( index( $opt, '-' ) ) == 0 ) {
+                    die "$FILENAME: Unknown option: $orig\n";
+                }
+                push @filenames_found, $orig;
+            }
+        }
+    }
+    if ( @filenames_found > $max_filenames ) {
+        if ( $max_filenames == 0 ) {
+            die "$FILENAME: Unknown option: $filenames_found[-1]\n";
+        }
+        die "$FILENAME: Too many filenames\n";
+    }
+    return ( \%opts_found, \@filenames_found );
+}
+
+#########################################################################
+# my ini and options
+#########################################################################
+#
+# First column:   option name
+# Secound column: type of option:
+#                         0 = option takes no argument
+#                         1 = option takes one argument
+my %opts_available = qw(
+    -o    1
+    -r    0
+    -c    1
+    -b    1
+    -x    1
+    -p    1
+    -s    1
+    -t    1
+    -f    1
+    -e    0
+    -d    1
+    -cf+  0
+    -cf-  0
+    -cd+  0
+    -cd-  0
+    -ci   0
+    -v    0
+    -l    0
+    -h    0
+    -h2   0
+);
+
+# First column:   option alias
+# Secound column: real name of option (see table above)
+my %opts_aliases = qw(
+    --output          -o
+    --recursively     -b
+    --commentfile     -c
+    --base            -b
+    --exclamation     -x
+    --pathseparator   -p
+    --timestamp       -s
+    --title           -t
+    --filetype        -f
+    --dirfiles        -d
+    --filecounter-on  -cf+
+    --filecounter-off -cf-
+    --dircounter-on   -cd+
+    --dircounter-off  -cd-
+    --tree            -e
+    --create-inifile  -ci
+    --version         -v
+    --license         -l
+    --help            -h
+    --advanced-help   -h2
+);
+
+my @ini_keys_available = qw(
+    outputfile
+    recursively
+    commentfile
+    base
+    exclamation
+    pathseparator
+    timestamp
+    title
+    filetype
+    dirfiles
+    filecounter
+    dircounter
+    tree
+);
+
+my %settings;
+
+sub default_settings
+{
+    %settings = (
+    "outputfile",       "index.html",
+    "recursively",      "no",
+    "commentfile",      "",
+    "base",             "/",
+    "exclamation",      '<b><font color="#ff0000">HOT! </font></b>',
+    "pathseparator",    "/",
+    "timestamp",        'Created %Y %b %e (%H:%M GMT)',
+    "title",            "Contents of ",
+    "filetype",         '<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">',
+    "dirfiles",         "index.html",
+    "filecounter",      "yes",
+    "dircounter",       "yes",
+    "tree",             "no"
+    );
+};
+default_settings;
+
+my %comments = ();
+
+#########################################################################
+
+sub help
+{
+print STDOUT
+"$PROGNAME: Generates an (optionally commented) HTML indexfile for a\
+  directory (and optionally for all its subdirectories).\
+Usage: $PROGNAME [OPTIONS] [--] [DIRECTORY]\
+DIRECTORY should specify the directory (path from the current directory)\
+  for which the indexfile has to be generated. If DIRECTORY is omitted,\
+  the indexfile is created for the current directory.\
+OPTIONS:\
+  -o FILE, --output FILE        The default name for the created indexfile\
+                                is `index.html'. With this option you can\
+                                change it to FILE. If you specify `-' as\
+                                FILE, then all output will be written to\
+                                the standard output STDOUT. Multiple files\
+                                will be seperated by form feeds (\\f = 0x0c\
+                                = ASCII #12).
+  -r, --recursively             An indexfile is not only generated for the\
+                                specified DIRECTORY but also for all its\
+                                subdirectories (and subsubdirs etc.). Each\
+                                indexfile is placed in the respective\
+                                directory.\
+  -c FILE, --commentfile FILE   Creates a commented indexfile. All comments\
+                                are generated using the specified FILE.\
+                                The FILE should be a plain textfile (ASCII)\
+                                and each line should be in the following\
+                                format:\
+                                FILENAME:COMMENTARY\
+                                If the created indexfile contains a refe-\
+                                rence to the file (or directory) FILENAME,\
+                                then the COMMENTARY is written beneath the\
+                                filename.\
+  -b NAME, --base NAME          In the indexfile use NAME as the name of\
+                                the DIRECTORY. The default is `/'. If you\
+                                create indexfiles for subdirectories (using\
+                                the -r option) the paths of these are based\
+                                on NAME. That makes NAME your virtual `root'.\
+  -p CHAR, --pathseparator CHAR Uses the character CHAR to separate the names\
+                                of files and directories in the path which is\
+                                displayed in the title of the indexfile.\
+                                Default is the Unix style slash `/'. Windows\
+                                users may find it convenient to replace it\
+                                with a backslash `\\' (to avoid confusing your\
+                                shell you may use the keyword `backslash'\
+                                instead of `\\').\
+  -v, --version                 Display the program version\
+  -l, --license                 Display the license\
+  -h, --help                    Display this help screen\
+  -h2, --advanced-help          Display another help screen with advanced\
+                                options.\
+Send bug reports or suggestions to: <peer\@wolldingwacht.de>\
+$WEBSITE\n";
+}
+
+sub help2
+{
+print STDOUT
+"ADVANCED OPTIONS:\
+  -t TEXT, --title TEXT         Use TEXT as the title (headline) of the\
+                                indexfile. Default is `Contents of '. If\
+                                the TEXT contains spaces, please remember\
+                                to enclose it in quotes (\"TEXT\") to avoid\
+                                confusing your shell.\
+  -x TEXT, --exclamation TEXT   If the file COMMENTARY in the commentfile\
+                                (see description of the -c option above)\
+                                begins with an `!', the exclamation\
+                                mark is replaced with some special text.\
+                                The default special text is:\
+                                `$settings{exclamation}'\
+                                (= HTML code for a fat red `HOT!')\
+                                The -x option changes this default text to\
+                                TEXT. TEXT may contain HTML code.\
+  -s FORMAT, --timestamp FORMAT The timestamp at the bottom of the indexfile\
+                                follows the specified FORMAT. The FORMAT\
+                                follows the rules of the ANSI C function\
+                                `strftime()'. The default format is:\
+                                `$settings{timestamp}'\
+  -f TAG, --filetype TAG        Uses the tag TAG in the HTML indexfile to\
+                                describe the filetype of the HTML indexfile.\
+                                The default TAG is:\
+                                `$settings{filetype}'\
+  -cf+, --filecounter-on\
+  -cf-, --filecounter-off\
+  -cd+, --dircounter-on\
+  -cd-, --dircounter-off        By default the program writes at the beginning\
+                                of the file- and directory-blocks the number\
+                                of files resp. dirs in the current directory.\
+                                This feature can be turned on/off with these\
+                                options.\
+  -e, --tree                    This option changes the behaviour of the\
+                                complete program: instead of creating an HTML\
+                                directory (indexfile) the program generates\
+                                a HTML directory-tree, starting with the\
+                                specified directory (see -h for details) as\
+                                root.\
+  -d, --dirfiles FILE           If option -e is used (see above) the program\
+                                creates in the HTML-treefile direct links to\
+                                the indexfiles in the several (sub)directories.\
+                                With this option you specify the names for the\
+                                indexfiles (default is `index.html'). An\
+                                incorrect name results in broken links.\
+  -ci, --create-inifile         Creates an INI-file (see below).\
+  -h2, --advanced-help          Display this help screen\
+  -h, --help                    Display a help screen with basic options\
+
+Notice:\
+A DIRECTORY name beginning with an `-' can be placed after a `--' to make\
+  clear that it is not an OPTION.\
+
+INI-File:
+The program looks for a file named `$PROGNAME.ini' in the current directory.\
+  If the file (called INI-file) is present, the program reads the file and\
+  scans it. Inside the INI-file you can configure the program similar to\
+  configuring it with options like -o or -r (use -h option for details).\
+  The INI-file should be a plain ASCII-textfile. The INI-file should have\
+  a section titled `[Defaults]' that contains commands in the format\
+    KEY = VALUE\
+  The following KEYS are available:
+                  EFFECT AS    POSSIBLE\
+  KEY:            OPTION:      VALUES:\
+  OutputFile      -o           see description of the -o option\
+  Recursively     -r           YES or NO\
+  CommentFile     -c           see description of the -c option\
+  Base            -b           see description of the -b option\
+  Exclamation     -x           see description of the -x option\
+  PathSeparator   -p           see description of the -p option\
+  Timestamp       -s           see description of the -s option\
+  Title           -t           see description of the -t option\
+  Filetype        -f           see description of the -f option\
+  FileCounter     -cf          YES or NO\
+  DirCounter      -cd          YES or NO\
+  Tree            -e           YES or NO\
+  Dirfiles        -d           see description of the -d option\
+\
+  To create an example INI-file (containing the default values) use the\
+  option -ci or --create-inifile.\
+\n";
+}
+
+#########################################################################
+
+if ( -e "$PROGNAME.ini" )
+{
+    my %ini_entry = readini("$PROGNAME.ini", "defaults", \@ini_keys_available);
+    foreach ( keys %ini_entry )
+    {
+        if ( $ini_entry{$_} ne "" ) { $settings{$_} = $ini_entry{$_}; };
+    }
+    $settings{recursively} = lc $settings{recursively};
+    $settings{dircounter}  = lc $settings{dircounter};
+    $settings{filecounter} = lc $settings{filecounter};
+    $settings{tree}        = lc $settings{tree};
+}
+
+#########################################################################
+
+sub create_inifile
+{
+    if ( -e "$PROGNAME.ini" ) { die "$PROGNAME.ini already exists.\n"; };
+    open (INIFILE, ">$PROGNAME.ini") || die "Can't create file $PROGNAME.ini: $!\n";
+    print INIFILE
+"#\
+# Default INI-file for $PROGNAME\
+#\
+\
+[Defaults]\
+OutputFile     =  index.html\
+Recursively    =  no\
+Commentfile    =  \"\"\
+Base           =  /\
+Exclamation    =  <b><font color=\"#ff0000\">HOT! </font></b>\
+PathSeparator  =  /\
+Timestamp      =  Created %Y %b %e (%H:%M GMT)\
+Title          =  \"Contents of \"\
+Filetype       =  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=iso-8859-1\">\
+FileCounter    =  yes\
+DirCounter     =  yes\
+Tree           =  no\
+Dirfiles       =  index.html\
+";
+    close INIFILE;
+}
+
+#########################################################################
+
+my ( $opts_found, $filenames_found ) =
+  readopts( \%opts_available, \%opts_aliases, 1 );
+
+if (@$filenames_found > 1) { die "Too many directories.\n"; }
+
+if ( defined $$opts_found{-v}  ) { print MSGOUT "$TITLE\n$WEBSITE\n"; exit; }
+if ( defined $$opts_found{-l}  ) { print MSGOUT "$LICENSE\n"; exit; }
+if ( defined $$opts_found{-h}  ) { default_settings; help; exit; }
+if ( defined $$opts_found{-h2} ) { default_settings; help2; exit; }
+if ( defined $$opts_found{-ci} ) { create_inifile; exit; }
+
+if ( defined $$opts_found{-e} ) { $settings{tree}         = "yes"; }
+if ( defined $$opts_found{-d} ) { $settings{dirfiles}     = $$opts_found{-d}; }
+
+if ( defined $$opts_found{-o} ) { $settings{outputfile}   = $$opts_found{-o}; }
+if ( defined $$opts_found{-r} ) { $settings{recursively}  = "yes"; }
+if ( defined $$opts_found{-c} ) { $settings{commentfile}  = $$opts_found{-c}; }
+if ( defined $$opts_found{-b} ) { $settings{base}         = $$opts_found{-b}; }
+if ( defined $$opts_found{-x} ) { $settings{exclamation}  = $$opts_found{-x}; }
+if ( defined $$opts_found{-p} ) {
+    $settings{pathseparator} = $$opts_found{-p};
+    if ( ( lc $settings{pathseparator} ) eq "backslash" ) { $settings{pathseparator} = "\\"; }
+}
+if ( defined $$opts_found{-s} ) { $settings{timestamp}    = $$opts_found{-s}; }
+if ( defined $$opts_found{-t} ) { $settings{title}        = $$opts_found{-t}; }
+if ( defined $$opts_found{-f} ) { $settings{filetype}     = $$opts_found{-f}; }
+
+if ( defined $$opts_found{"-cf+"} ) { $settings{filecounter} = "yes"; }
+if ( defined $$opts_found{"-cf-"} ) { $settings{filecounter} = "no"; }
+if ( defined $$opts_found{"-cd+"} ) { $settings{dircounter}  = "yes"; }
+if ( defined $$opts_found{"-cd-"} ) { $settings{dircounter}  = "no"; }
+
+#########################################################################
+
+if ( $settings{commentfile} ne "" )
+{
+    my @temp;
+    my ($l, $a, $b);
+    my $lineno = 0;
+
+    open(COMMENTFILE, "<$settings{commentfile}") || die "Can't find file $settings{commentfile}: $!\n";
+    while (<COMMENTFILE>)
+    {
+        $lineno++;
+        s/^\s+|\s+$//g; # remove preceding oder succeeding whitespace
+        if ($_ ne "")
+        {
+            m/([^:]+):(.+)/o;
+            if ((defined $1) && (defined $2))
+            {
+                if (defined $comments{$1})
+                {
+                    print MSGOUT "Warning: $settings{commentfile} at line $lineno: file '$1' already described\n";
+                }
+		$a = $1; $a =~ s/^\s+|\s+$//g;
+		$b = $2; $b =~ s/^\s+|\s+$//g;
+		$b =~ s/^!/$settings{exclamation}/;
+                $comments{$a} = $b;
+            }
+	    else {
+		die "$settings{commentfile} at line $lineno: file description incomplete - `$_'\n";
+	    }
+        }
+    }
+    close COMMENTFILE;
+}
+
+#########################################################################
+
+sub dir2html
+{
+    my $currentdir = $_[0];
+    my @dir;
+    my @dirs;
+    my @files;
+    my ($tmp, $tmp2);
+
+    if ( ($settings{outputfile} eq "") || ( (lc $settings{outputfile}) eq "-") )
+          { *DIRFILE = *STDOUT; }
+    else  { open(DIRFILE, ">$settings{outputfile}"); }
+
+    print DIRFILE "<html>\n";
+    print DIRFILE "<head>\n";
+    print DIRFILE "<title>$settings{title}$currentdir</title>\n";
+    if ( $settings{filetype} ne "" ) { print DIRFILE "$settings{filetype}\n"; }
+    print DIRFILE "<meta name=\"GENERATOR\" content=\"$PROGNAME $VERSION (c) $YEAR $AUTHOR\">\n";
+    print DIRFILE "</head>\n";
+
+    print DIRFILE "<body>\n<p><h1>$settings{title}$currentdir</h1></p>\n";
+
+    if ( $currentdir eq $settings{base} )
+    {
+        if (exists $comments{$currentdir})
+        {
+	    $tmp = $comments{$currentdir};
+	    $tmp =~ s/href=\"/href=\"..\//g;
+	    print DIRFILE "<p>$tmp</p>\n";
+        }
+    }
+    else
+    {
+        $tmp = reverse $currentdir;
+        $tmp2 = reverse $settings{pathseparator};
+        $tmp2 =~ s/\\/\\\\/g;
+        $tmp2 =~ s/\//\\\//g;
+        $tmp2 =~ s/\"/\\\"/g;
+        $tmp =~ m/(.*?)$tmp2(.*)/;
+        $tmp = reverse $1; if ($tmp eq '') { $tmp = $settings{pathseparator}; }
+        if (exists $comments{$tmp})
+        {
+	    $tmp = $comments{$tmp};
+	    $tmp =~ s/href=\"/href=\"..\//g;
+	    print DIRFILE "<p>$tmp</p>\n";
+        }
+    }
+
+    print DIRFILE "<hr>\n";
+
+    opendir(DIR, '.') || die "Can't open directory $currentdir\n";
+    @dir = readdir(DIR);
+    closedir DIR;
+    foreach (@dir)
+    {
+        if ((-d $_) && ($_ ne '..') && ($_ ne '.')) { push @dirs, $_; }
+    }
+    if ((@dirs > 0) || ($currentdir ne $settings{base}))
+    {
+        print DIRFILE "<p><h3>";
+        $tmp = @dirs; if ($currentdir ne $settings{base}) { $tmp++; }
+        if ( $settings{dircounter} eq "yes" ) { print DIRFILE "$tmp "; }
+        print DIRFILE "Directories:</h3></p>\n";
+        print DIRFILE "<p><dl>\n";
+        if ($currentdir ne $settings{base})
+        {
+            print DIRFILE
+              "<dt><a href=\"../$settings{outputfile}\">.. (parent)</a><dd>parent directory (up one level)";
+        }
+        @dirs = sort { (lc $a) cmp(lc $b) } @dirs;
+        foreach (@dirs)
+        {
+            print DIRFILE "<dt><a href=\"$_/$settings{outputfile}\">$_</a>";
+            print DIRFILE "<dd>";
+            if (exists $comments{$_})
+            {
+                print DIRFILE $comments{$_} . "\n";
+            }
+            else { print DIRFILE "-\n"; }
+        }
+        print DIRFILE "</dl></p>\n";
+        print DIRFILE "<hr>\n";
+    }
+
+    foreach (@dir)
+    {
+        if (-f $_) { push @files, $_; }
+    }
+    print DIRFILE "<p><h3>";
+    if ( $settings{filecounter} eq "yes" ) { print DIRFILE scalar @files . " "; }
+    print DIRFILE "Files:</h3></p>\n";
+    if (@files > 0)
+    {
+        print DIRFILE "<p><dl>\n";
+        @files = sort { (lc $a) cmp(lc $b) } @files;
+        foreach (@files)
+        {
+            print DIRFILE "<dt><a href=\"$_\">$_</a>";
+            print DIRFILE "<dd>";
+            if (exists $comments{$_})
+            {
+                print DIRFILE $comments{$_} . "\n";
+            }
+            else { print DIRFILE "-\n"; }
+        }
+        print DIRFILE "</dl></p>\n";
+    }
+    else
+    {
+        print DIRFILE "<p>none.</p>\n";
+    }
+
+    if ( $settings{timestamp} ne "" )
+    {
+        $tmp = strftime $settings{timestamp}, gmtime;
+        print DIRFILE "<hr>\n<p>$tmp</p>\n";
+    }
+
+    print DIRFILE "</body>\n</html>\n";
+
+    if ( ($settings{outputfile} ne "") && ( (lc $settings{outputfile}) ne "-") )
+          { close DIRFILE; }
+
+    if ((lc $settings{recursively}) eq "yes")
+    {
+        foreach (@dirs)
+        {
+            chdir $_ || die "Can't change into directory $_\n";
+            if (((rindex $currentdir, $settings{pathseparator}) + length $settings{pathseparator}) != length $currentdir)
+            {
+                $currentdir .= $settings{pathseparator};
+            }
+	    if ( ($settings{outputfile} eq "") || ( (lc $settings{outputfile}) eq "-") ) { print DIRFILE "\f"; }
+            dir2html($currentdir . $_);
+            chdir '..' || die "Can't change into directory \"..\"\n";
+        }
+    }
+}
+
+#########################################################################
+
+sub html_tree
+{
+    my $treefile   = $_[0];
+    my $currentdir = $_[1];
+    my @dir;
+    my @dirs;
+    my @files;
+    my ($tmp, $tmp2);
+
+    opendir(DIR, '.') || die "Can't open current directory \".\"\n";
+    @dir = readdir(DIR);
+    closedir DIR;
+
+
+    foreach (@dir)
+    {
+        if (-f $_) { push @files, $_; }
+    }
+    if (@files > 0)
+    {
+        print $treefile "<p><ul>\n";
+        @files = sort { (lc $a) cmp(lc $b) } @files;
+        foreach (@files)
+        {
+            print $treefile "<li><a href=\"$currentdir\/$_\">$_</a>";
+            print $treefile ": ";
+            if (exists $comments{$_})
+            {
+                my $tmp = $comments{$_};
+                $tmp =~ s/href=\"/href=\"$currentdir\//g;
+                print $treefile $tmp;
+            }
+            else { print $treefile "-"; }
+            print $treefile "</li>\n";
+        }
+        print $treefile "</ul></p>\n";
+    }
+
+
+    foreach (@dir)
+    {
+        if ((-d $_) && ($_ ne '..') && ($_ ne '.')) { push @dirs, $_; }
+    }
+    if (@dirs > 0)
+    {
+        print $treefile "<ul>\n";
+        @dirs = sort { (lc $a) cmp(lc $b) } @dirs;
+        foreach (@dirs)
+        {
+            print $treefile "<p>";
+            print $treefile "<li><h3><b><a href=\"$currentdir\/$_/$settings{dirfiles}\">$_</a></b>";
+            print $treefile ": ";
+            if (exists $comments{$_})
+            {
+                my $tmp = $comments{$_};
+                $tmp =~ s/href=\"/href=\"$currentdir\//g;
+                print $treefile $tmp;
+            }
+            else { print $treefile "-"; }
+            print $treefile "</h3></li>\n";
+            chdir ( $_ ) || die "Can't change into directory $_:$!\n";
+            html_tree ( $treefile, "$currentdir\/$_" );
+            chdir ( '..' ) || die "Can't change into directory ..:$!\n";
+            print $treefile "</p>";
+        }
+        print $treefile "</ul>\n";
+    }
+
+}
+
+#########################################################################
+
+if (@$filenames_found != 0)
+{
+    chdir ($$filenames_found[0]) || die "Can't change into directory $$filenames_found[0]: $!\n";
+}
+
+if ( $settings{tree} ne 'yes' )  ############## dir2html
+{
+    dir2html ($settings{base});
+}
+else                             ############## html-tree
+{
+    open my $treefile, ">$settings{outputfile}" || die "Can't open file $settings{outputfile}: $!\n";
+
+    print $treefile "<html>\n";
+    print $treefile "<head>\n";
+    print $treefile "<title>$settings{title}$settings{base}</title>\n";
+    if ( $settings{filetype} ne "" ) { print $treefile "$settings{filetype}\n"; }
+    print $treefile "<meta name=\"GENERATOR\" content=\"$PROGNAME $VERSION (c) $YEAR $AUTHOR\">\n";
+    print $treefile "</head>\n";
+
+    print $treefile "<body>\n<p><h1>$settings{title}$settings{base}</h1></p>\n";
+
+    if (exists $comments{$settings{base}})
+    {
+        my $tmp = $comments{$settings{base}};
+	$tmp =~ s/href=\"/href=\"..\//g;
+	print $treefile "<p>$tmp</p>\n";
+    }
+
+    print $treefile "<hr>\n";
+
+    html_tree ( $treefile, '.' );
+
+    if ( $settings{timestamp} ne "" )
+    {
+        my $tmp = strftime $settings{timestamp}, gmtime;
+        print $treefile "<hr>\n<p>$tmp</p>\n";
+    }
+
+    print $treefile "</body>\n</html>\n";
+
+    close $treefile;
+}
+
+__END__

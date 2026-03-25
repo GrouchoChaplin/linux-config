@@ -1,0 +1,226 @@
+#
+# Certificate-Based Repositories
+# Managed by (rhsm) subscription-manager
+#
+# *** This file is auto-generated.  Changes made here will be over-written. ***
+# *** Use "subscription-manager repo-override --help" if you wish to make changes. ***
+#
+# If this file is empty and this system is subscribed consider
+# a "yum repolist" to refresh available repos
+#
+
+[AvMC_S3I_s3i_nvidia_rhel-8_s3i-cuda-rhel8-x86_64]
+name = s3i-cuda-rhel8-x86_64
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/custom/s3i_nvidia_rhel-8/s3i-cuda-rhel8-x86_64
+enabled = 1
+gpgcheck = 1
+gpgkey = https://c-g6u-satellite.ipa.avmc.army.mil/katello/api/v2/repositories/192/gpg_key_content
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 1
+
+[AvMC_S3I_s3i-epel-8_EPEL8_x86_64]
+name = EPEL8_x86_64
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/custom/s3i-epel-8/EPEL8_x86_64
+enabled = 1
+gpgcheck = 1
+gpgkey = https://c-g6u-satellite.ipa.avmc.army.mil/katello/api/v2/repositories/196/gpg_key_content
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[codeready-builder-for-rhel-8-x86_64-rpms]
+name = Red Hat CodeReady Linux Builder for RHEL 8 x86_64 (RPMs)
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/content/dist/rhel8/$releasever/x86_64/codeready-builder/os
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[satellite-utils-6.16-for-rhel-8-x86_64-rpms]
+name = Red Hat Satellite Utils 6.16 for RHEL 8 x86_64 (RPMs)
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/content/dist/layered/rhel8/x86_64/sat-utils/6.16/os
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[AvMC_S3I_Microsoft_code]
+name = code
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/custom/Microsoft/code
+enabled = 1
+gpgcheck = 1
+gpgkey = https://c-g6u-satellite.ipa.avmc.army.mil/katello/api/v2/repositories/193/gpg_key_content
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[AvMC_S3I_PostgreSQL_-_RHEL_8_pgdg14]
+name = pgdg14
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/custom/PostgreSQL_-_RHEL_8/pgdg14
+enabled = 0
+gpgcheck = 0
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[AvMC_S3I_PostgreSQL_-_RHEL_8_pgdg15]
+name = pgdg15
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/custom/PostgreSQL_-_RHEL_8/pgdg15
+enabled = 0
+gpgcheck = 0
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[AvMC_S3I_PostgreSQL_-_RHEL_8_pgdg16]
+name = pgdg16
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/custom/PostgreSQL_-_RHEL_8/pgdg16
+enabled = 0
+gpgcheck = 0
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[AvMC_S3I_Google_Chrome]
+name = Chrome
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/custom/Google/Chrome
+enabled = 1
+gpgcheck = 1
+gpgkey = https://c-g6u-satellite.ipa.avmc.army.mil/katello/api/v2/repositories/194/gpg_key_content
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[satellite-client-6-for-rhel-8-x86_64-rpms]
+name = Red Hat Satellite Client 6 for RHEL 8 x86_64 (RPMs)
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/content/dist/layered/rhel8/x86_64/sat-client/6/os
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[AvMC_S3I_PostgreSQL_-_RHEL_8_pgdg13]
+name = pgdg13
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/custom/PostgreSQL_-_RHEL_8/pgdg13
+enabled = 0
+gpgcheck = 0
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[satellite-capsule-6.16-for-rhel-8-x86_64-rpms]
+name = Red Hat Satellite Capsule 6.16 for RHEL 8 x86_64 (RPMs)
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/content/dist/layered/rhel8/x86_64/sat-capsule/6.16/os
+enabled = 0
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[satellite-maintenance-6.16-for-rhel-8-x86_64-rpms]
+name = Red Hat Satellite Maintenance 6.16 for RHEL 8 x86_64 (RPMs)
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/content/dist/layered/rhel8/x86_64/sat-maintenance/6.16/os
+enabled = 0
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[AvMC_S3I_PostgreSQL_-_RHEL_8_pgdg17]
+name = pgdg17
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/custom/PostgreSQL_-_RHEL_8/pgdg17
+enabled = 0
+gpgcheck = 0
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[satellite-tools-6.10-for-rhel-8-x86_64-rpms]
+name = Red Hat Satellite Tools 6.10 for RHEL 8 x86_64 (RPMs)
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/content/dist/layered/rhel8/x86_64/sat-tools/6.10/os
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 0
+
+[rhel-8-for-x86_64-appstream-rpms]
+name = Red Hat Enterprise Linux 8 for x86_64 - AppStream (RPMs)
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/content/dist/rhel8/$releasever/x86_64/appstream/os
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 1
+
+[rhel-8-for-x86_64-baseos-rpms]
+name = Red Hat Enterprise Linux 8 for x86_64 - BaseOS (RPMs)
+baseurl = https://c-g6u-satellite.ipa.avmc.army.mil/pulp/content/AvMC_S3I/Library/s3i_rhel-8/content/dist/rhel8/$releasever/x86_64/baseos/os
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify = 1
+sslcacert = /etc/rhsm/ca/katello-server-ca.pem
+sslclientkey = /etc/pki/entitlement/5792388829886866932-key.pem
+sslclientcert = /etc/pki/entitlement/5792388829886866932.pem
+metadata_expire = 1
+enabled_metadata = 1

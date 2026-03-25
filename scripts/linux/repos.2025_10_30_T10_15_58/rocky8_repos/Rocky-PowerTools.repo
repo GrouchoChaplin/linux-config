@@ -1,0 +1,7 @@
+[powertools]
+name=Rocky Linux $releasever - PowerTools
+baseurl=http://dl.rockylinux.org/$contentdir/$releasever/PowerTools/$basearch/os/
+enabled=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial
+metadata_expire=7d

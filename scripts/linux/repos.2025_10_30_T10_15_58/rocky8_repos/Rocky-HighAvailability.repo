@@ -1,0 +1,7 @@
+[ha]
+name=Rocky Linux $releasever - HighAvailability
+baseurl=http://dl.rockylinux.org/$contentdir/$releasever/HighAvailability/$basearch/os/
+enabled=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial
+metadata_expire=7d
